@@ -1,0 +1,21 @@
+[package]
+name = "quad-net"
+version = "0.1.0"
+authors = ["Fedor Logachev <not.fl3@gmail.com>"]
+edition = "2018"
+
+[features]
+default = ["nanoserde"]
+
+[dependencies]
+nanoserde = { version = "0.1", optional = true }
+
+[target.'cfg(not(target_arch = "wasm32"))'.dependencies]
+ws = { git = "https://github.com/not-fl3/ws-rs.git" }
+
+[target.'cfg(target_arch = "wasm32")'.dependencies]
+sapp-jsutils = "0.1"
+
+[dev-dependencies]
+nanoserde = { version = "0.1" }
+macroquad = { version = "0.3.0-alpha" }
