@@ -27,7 +27,6 @@ impl TcpSocket {
 impl TcpSocket {
     pub fn connect<A: ToSocketAddrs>(addr: A) -> Result<TcpSocket, Error> {
         let stream = TcpStream::connect(addr)?;
-        stream.set_nonblocking(true).unwrap();
         stream.set_nodelay(true).unwrap();
 
         let (tx, rx) = mpsc::channel();
