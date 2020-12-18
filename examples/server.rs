@@ -37,9 +37,11 @@ pub fn main() -> std::io::Result<()> {
                     world.lock().unwrap().pos = msg;
                 }
             },
-            on_timer: move |mut out, _state| {
+            on_timer: move |out, _state| {
                 let world = world.lock().unwrap();
-                out.send_bin(&(world.pos.0, world.pos.1, world.last_edit_id));
+                out.send_bin(&(world.pos.0, world.pos.1, world.last_edit_id)).unwrap();
+            },
+            on_disconnect: |_| {
             },
             timer: Some(Duration::from_millis(100)),
             _marker: std::marker::PhantomData,

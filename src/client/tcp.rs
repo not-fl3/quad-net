@@ -36,7 +36,7 @@ impl TcpSocket {
             move || {
                 let mut messages = MessageReader::new();
                 loop {
-                    if let Some(message) = messages.next(&mut stream) {
+                    if let Ok(Some(message)) = messages.next(&mut stream) {
                         tx.send(message).unwrap();
                     }
                 }

@@ -1,41 +1,37 @@
-#[cfg(not(target_arch = "wasm32"))]
+use std::io::ErrorKind;
+
 #[derive(Debug)]
 pub enum MessageReader {
     Empty,
     Amount(usize),
-    Ready(Vec<u8>),
 }
 
-#[cfg(not(target_arch = "wasm32"))]
 impl MessageReader {
     pub fn new() -> MessageReader {
         MessageReader::Empty
     }
 
-    pub fn next(&mut self, mut stream: impl std::io::Read) -> Option<Vec<u8>> {
+    pub fn next(&mut self, mut stream: impl std::io::Read) -> Result<Option<Vec<u8>>, ()> {
         let mut bytes = [0 as u8; 255];
 
         match self {
-            MessageReader::Empty => {
-                if let Ok(_) = stream.read_exact(&mut bytes[0..1]) {
+            MessageReader::Empty => match stream.read_exact(&mut bytes[0..1]) {
+                Ok(_) => {
                     *self = MessageReader::Amount(bytes[0] as usize);
+                    Ok(None)
                 }
-                None
-            }
-            MessageReader::Amount(len) => {
-                if let Ok(_) = stream.read_exact(&mut bytes[0..*len]) {
-                    *self = MessageReader::Ready(bytes[0..*len].to_vec());
+                Err(err) if err.kind() == ErrorKind::WouldBlock => Ok(None),
+                Err(_err) => Err(()),
+            },
+            MessageReader::Amount(len) => match stream.read_exact(&mut bytes[0..*len]) {
+                Ok(_) => {
+                    let msg = bytes[0..*len].to_vec();
+                    *self = MessageReader::Empty;
+                    Ok(Some(msg))
                 }
-                None
-            }
-            MessageReader::Ready(_) => {
-                let msg = std::mem::replace(self, MessageReader::Empty);
-                match msg {
-                    MessageReader::Ready(msg) => Some(msg),
-                    _ => unreachable!(),
-                }
-            }
+                Err(err) if err.kind() == ErrorKind::WouldBlock => Ok(None),
+                Err(_) => Err(()),
+            },
         }
     }
 }
-
