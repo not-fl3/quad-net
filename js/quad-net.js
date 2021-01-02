@@ -8,7 +8,7 @@ register_plugin = function (importObject) {
     importObject.env.ws_try_recv = ws_try_recv;
 }
 
-miniquad_add_plugin({ register_plugin, on_init });
+miniquad_add_plugin({ register_plugin, on_init, version: "0.1.0", name: "quad_net" });
 
 var socket;
 var connected = 0;
