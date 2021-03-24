@@ -1,1 +1,103 @@
-var socket,connected,received_buffer;function on_init(){}register_plugin=function(a){a.env.ws_connect=ws_connect,a.env.ws_is_connected=ws_is_connected,a.env.ws_send=ws_send,a.env.ws_try_recv=ws_try_recv},miniquad_add_plugin({register_plugin,on_init});connected=0,received_buffer=[];function ws_is_connected(){return connected}function ws_connect(a){socket=new WebSocket(consume_js_object(a)),socket.binaryType='arraybuffer',socket.onopen=function(){connected=1},socket.onmessage=function(a){var b=new Uint8Array(a.data);received_buffer.push(b)}}function ws_send(a){var b=consume_js_object(a);socket.send(b.buffer)}function ws_try_recv(){return received_buffer.length!=0?js_object(received_buffer.shift()):-1}
+function on_init() {
+}
+
+register_plugin = function (importObject) {
+    importObject.env.ws_connect = ws_connect;
+    importObject.env.ws_is_connected = ws_is_connected;
+    importObject.env.ws_send = ws_send;
+    importObject.env.ws_try_recv = ws_try_recv;
+
+    importObject.env.http_make_request = http_make_request;
+    importObject.env.http_try_recv = http_try_recv;
+}
+
+miniquad_add_plugin({ register_plugin, on_init, version: "0.1.0", name: "quad_net" });
+
+var socket;
+var connected = 0;
+var received_buffer = [];
+
+function ws_is_connected() {
+    return connected;
+}
+
+function ws_connect(addr) {
+    socket = new WebSocket(consume_js_object(addr));
+    socket.binaryType = 'arraybuffer';
+    socket.onopen = function() {
+        connected = 1;
+    };
+
+    socket.onmessage = function(msg) {
+        var buffer = new Uint8Array(msg.data);
+        received_buffer.push(buffer);
+    }
+};
+
+function ws_send(data) {
+    var array = consume_js_object(data);
+    socket.send(array.buffer);
+};
+
+function ws_try_recv() {
+    if (received_buffer.length != 0) {
+        return js_object(received_buffer.shift())
+    }
+    return -1;
+}
+
+
+var uid = 0;
+var ongoing_requests = {};
+
+function http_try_recv(cid) {
+    if (ongoing_requests[cid] != undefined && ongoing_requests[cid] != null) {
+        var data = ongoing_requests[cid];
+        ongoing_requests[cid] = null;
+        return js_object(data);
+    }
+    return -1;
+}
+
+function http_make_request(scheme, url, body, headers) {
+    var cid = uid;
+
+    uid += 1;
+
+    var scheme_string;
+    if (scheme == 0) {
+        scheme_string = 'POST';
+    }
+    if (scheme == 1) {
+        scheme_string = 'PUT';
+    }
+    if (scheme == 2) {
+        scheme_string = 'GET';
+    }
+    if (scheme == 3) {
+        scheme_string = 'DELETE';
+    }
+    var url_string = consume_js_object(url);
+    var body_string = consume_js_object(body);
+    var headers_obj = consume_js_object(headers);
+    console.log(headers_obj);
+    var xhr = new XMLHttpRequest();
+    xhr.open('GET', url_string, true);
+    xhr.responseType = 'arraybuffer';
+    xhr.onload = function (e) {
+        if (this.status == 200) {
+            var uInt8Array = new Uint8Array(this.response);
+            
+            ongoing_requests[cid] = uInt8Array;
+        }
+    }
+    xhr.onerror = function (e) {
+        // todo: let rust know and put Error to ongoing requests
+        console.error("Failed to make a request");
+        console.error(e);
+    };
+
+    xhr.send(body);
+
+    return cid;
+}

@@ -1,6 +1,6 @@
 use macroquad::prelude::*;
 
-use quad_net::client::QuadSocket;
+use quad_net::quad_socket::client::QuadSocket;
 
 #[macroquad::main("Networking!")]
 async fn main() {

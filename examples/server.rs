@@ -20,10 +20,10 @@ pub fn main() -> std::io::Result<()> {
         unique_id: 0,
     }));
 
-    quad_net::server::listen(
+    quad_net::quad_socket::server::listen(
         "0.0.0.0:8090",
         "0.0.0.0:8091",
-        quad_net::server::Settings {
+        quad_net::quad_socket::server::Settings {
             on_message: {
                 let world = world.clone();
                 move |mut _out, mut state: &mut ClientState, msg| {
@@ -39,10 +39,10 @@ pub fn main() -> std::io::Result<()> {
             },
             on_timer: move |out, _state| {
                 let world = world.lock().unwrap();
-                out.send_bin(&(world.pos.0, world.pos.1, world.last_edit_id)).unwrap();
+                out.send_bin(&(world.pos.0, world.pos.1, world.last_edit_id))
+                    .unwrap();
             },
-            on_disconnect: |_| {
-            },
+            on_disconnect: |_| {},
             timer: Some(Duration::from_millis(100)),
             _marker: std::marker::PhantomData,
         },
