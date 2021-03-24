@@ -3,7 +3,7 @@ use std::net::ToSocketAddrs;
 use std::net::TcpStream;
 use std::sync::mpsc::{self, Receiver};
 
-use super::{super::protocol::MessageReader, error::Error};
+use crate::{error::Error, quad_socket::protocol::MessageReader};
 
 pub struct TcpSocket {
     stream: TcpStream,

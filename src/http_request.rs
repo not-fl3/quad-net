@@ -136,7 +136,7 @@ impl RequestBuilder {
                 request = request.set(&header, &value)
             }
             let response: Result<String, HttpError> = if let Some(body) = self.body {
-                dbg!(request).send_string(&body)
+                request.send_string(&body)
             } else {
                 request.call()
             }

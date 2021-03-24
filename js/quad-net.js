@@ -11,9 +11,9 @@ register_plugin = function (importObject) {
     importObject.env.http_try_recv = http_try_recv;
 }
 
-miniquad_add_plugin({ register_plugin, on_init, version: "0.1.0", name: "quad_net" });
+miniquad_add_plugin({ register_plugin, on_init, version: "0.1.1", name: "quad_net" });
 
-var socket;
+var quad_socket;
 var connected = 0;
 var received_buffer = [];
 
@@ -22,21 +22,37 @@ function ws_is_connected() {
 }
 
 function ws_connect(addr) {
-    socket = new WebSocket(consume_js_object(addr));
-    socket.binaryType = 'arraybuffer';
-    socket.onopen = function() {
+    quad_socket = new WebSocket(consume_js_object(addr));
+    quad_socket.binaryType = 'arraybuffer';
+    quad_socket.onopen = function() {
         connected = 1;
     };
 
-    socket.onmessage = function(msg) {
-        var buffer = new Uint8Array(msg.data);
-        received_buffer.push(buffer);
+    quad_socket.onmessage = function(msg) {
+        if (typeof msg.data == "string") {
+            received_buffer.push({
+                "text": 1,
+                "data": msg.data
+            });
+        } else {
+            var buffer = new Uint8Array(msg.data);
+            received_buffer.push({
+                "text": 0,
+                "data": buffer
+            });
+        }
+
     }
 };
 
 function ws_send(data) {
     var array = consume_js_object(data);
-    socket.send(array.buffer);
+    // here should be a nice typecheck on array.is_string or whatever
+    if (array.buffer != undefined) {
+        quad_socket.send(array.buffer);
+    } else {
+        quad_socket.send(array);
+    }
 };
 
 function ws_try_recv() {
@@ -80,10 +96,12 @@ function http_make_request(scheme, url, body, headers) {
     var url_string = consume_js_object(url);
     var body_string = consume_js_object(body);
     var headers_obj = consume_js_object(headers);
-    console.log(headers_obj);
     var xhr = new XMLHttpRequest();
-    xhr.open('GET', url_string, true);
+    xhr.open(scheme_string, url_string, true);
     xhr.responseType = 'arraybuffer';
+    for (const header in headers_obj) {
+        xhr.setRequestHeader(header, headers_obj[header]);
+    }
     xhr.onload = function (e) {
         if (this.status == 200) {
             var uInt8Array = new Uint8Array(this.response);
@@ -97,7 +115,7 @@ function http_make_request(scheme, url, body, headers) {
         console.error(e);
     };
 
-    xhr.send(body);
+    xhr.send(body_string);
 
     return cid;
 }

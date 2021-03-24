@@ -1,5 +1,7 @@
 //! Various network abstractions over web and desktop.
 
+mod error;
+
 pub mod http_request;
 pub mod quad_socket;
 pub mod web_socket;
