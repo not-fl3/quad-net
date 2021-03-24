@@ -11,7 +11,7 @@ default = ["nanoserde"]
 nanoserde = { version = "0.1", optional = true }
 
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
-ws = { git = "https://github.com/not-fl3/ws-rs.git" }
+ws = { git = "https://github.com/not-fl3/ws-rs.git", features = ["ssl"] }
 ureq = "2.0"
 
 [target.'cfg(target_arch = "wasm32")'.dependencies]
