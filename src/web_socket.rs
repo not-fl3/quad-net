@@ -105,7 +105,7 @@ mod pc_web_socket {
     impl WebSocket {
         pub fn connect<A: ToSocketAddrs + std::fmt::Display>(addr: A) -> Result<WebSocket, Error> {
             let (tx, rx) = mpsc::channel();
-            let ws_addr = dbg!(format!("{}", addr));
+            let ws_addr = format!("{}", addr);
             std::thread::spawn(move || {
                 ws::connect(ws_addr, |out| Client {
                     out,
