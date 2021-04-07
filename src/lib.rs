@@ -1,5 +1,8 @@
 //! Various network abstractions over web and desktop.
 
+#[cfg(not(target_arch = "wasm32"))]
+extern crate qws as ws;
+
 mod error;
 
 pub mod http_request;
