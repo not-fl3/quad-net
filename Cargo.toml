@@ -3,6 +3,8 @@ name = "quad-net"
 version = "0.1.1"
 authors = ["Fedor Logachev <not.fl3@gmail.com>"]
 edition = "2018"
+license = "MIT/Apache-2.0"
+description = "Miniquad friendly network abstractions"
 
 [features]
 default = ["nanoserde"]
