@@ -36,7 +36,6 @@ pub(crate) mod js_web_socket {
                     data.field("data").to_string(&mut s);
                     buf = s.into_bytes();
                 } else {
-                    let mut buf = vec![];
                     data.field("data").to_byte_buffer(&mut buf);
                 }
                 return Some(buf);
