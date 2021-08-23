@@ -1,3 +1,4 @@
+use std::io::ErrorKind;
 use std::net::ToSocketAddrs;
 use std::net::{TcpListener, TcpStream};
 use std::time::{Duration, Instant};
@@ -33,20 +34,37 @@ pub struct SocketHandle<'a> {
 
 impl<'a> Sender<'a> {
     fn send(&mut self, data: &[u8]) -> Option<()> {
-        use std::io::Write;
-
         match self {
             Sender::WebSocket(out) => {
                 out.send(data).ok()?;
             }
             Sender::Tcp(stream) => {
-                stream.write(&[data.len() as u8]).ok()?;
-                stream.write(data).ok()?;
+                write_until_done(stream, &u32::to_be_bytes(data.len() as u32));
+                write_until_done(stream, data);
             }
         }
 
         Some(())
     }
+}
+
+fn write_until_done(stream: &mut TcpStream, message: &[u8]) -> Option<()> {
+    use std::io::Write;
+
+    let mut sent = 0;
+
+    while sent < message.len() {
+        sent += match stream.write(&message[sent..]) {
+            Ok(bytes) => bytes,
+            Err(e) if e.kind() == ErrorKind::WouldBlock => {
+                std::thread::yield_now();
+                0
+            },
+            Err(_e) => return None,
+        };
+    }
+
+    Some(())
 }
 
 impl<'a> SocketHandle<'a> {
@@ -199,8 +217,8 @@ where
                             return;
                         }
                     }
-                    Ok(None) => {}
-                    Err(_err) => {
+                    Ok(None) => std::thread::yield_now(),
+                    Err(()) => {
                         (on_disconnect.lock().unwrap())(&state);
                         return;
                     }

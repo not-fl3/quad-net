@@ -36,7 +36,7 @@ async fn main() {
 
         if is_mouse_button_down(MouseButton::Left) {
             let (x, y) = mouse_position();
-            socket.send_bin(&(x, y));
+            socket.send_bin(&(x, y)).unwrap();
         }
         next_frame().await
     }

@@ -1,7 +1,7 @@
 use std::net::ToSocketAddrs;
 
 use std::net::TcpStream;
-use std::sync::mpsc::{self, Receiver};
+use std::sync::mpsc::{self, Receiver, SendError};
 
 use crate::{error::Error, quad_socket::protocol::MessageReader};
 
@@ -11,11 +11,11 @@ pub struct TcpSocket {
 }
 
 impl TcpSocket {
-    pub fn send(&mut self, data: &[u8]) {
-        use std::io::Write;
+    pub fn send(&mut self, data: &[u8]) -> Result<(), Error> {
+        write_until_done(&mut self.stream, &u32::to_be_bytes(data.len() as u32))?;
+        write_until_done(&mut self.stream, data)?;
 
-        self.stream.write(&[data.len() as u8]).unwrap();
-        self.stream.write(data).unwrap();
+        Ok(())
     }
 
     pub fn try_recv(&mut self) -> Option<Vec<u8>> {
@@ -23,10 +23,23 @@ impl TcpSocket {
     }
 }
 
+fn write_until_done(stream: &mut TcpStream, message: &[u8]) -> Result<(), Error> {
+    use std::io::Write;
+    let mut sent = 0;
+
+    while sent < message.len() {
+        sent += stream.write(&message[sent..])
+            .map_err(Error::IOError)?;
+    }
+
+    Ok(())
+}
+
 impl TcpSocket {
     pub fn connect<A: ToSocketAddrs>(addr: A) -> Result<TcpSocket, Error> {
         let stream = TcpStream::connect(addr)?;
         stream.set_nodelay(true).unwrap();
+        stream.set_nonblocking(true).unwrap();
 
         let (tx, rx) = mpsc::channel();
 
@@ -35,8 +48,15 @@ impl TcpSocket {
             move || {
                 let mut messages = MessageReader::new();
                 loop {
-                    if let Ok(Some(message)) = messages.next(&mut stream) {
-                        tx.send(message).unwrap();
+                    match messages.next(&mut stream) {
+                        Ok(Some(message)) => {
+                            match tx.send(message) {
+                                Ok(()) => (),
+                                Err(SendError(_message)) => break,
+                            }
+                        }
+                        Ok(None) => { std::thread::yield_now() },
+                        Err(()) => break,
                     }
                 }
             }
