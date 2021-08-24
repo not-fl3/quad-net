@@ -16,15 +16,15 @@ impl MessageReader {
         let mut bytes = [0; 16 * 1024];
 
         let bytes_read = match stream.read(&mut bytes) {
+            Ok(0) => return Err(()), // Disconnected
             Ok(bytes_read) => bytes_read,
-            Err(err) if err.kind() == ErrorKind::WouldBlock => return Ok(None),
+            Err(err) if err.kind() == ErrorKind::WouldBlock => {
+                // No bytes received; still, check our buffer in case there's
+                // more stored messages in it from previous packets
+                0
+            }
             Err(_err) => return Err(()),
         };
-
-        if bytes_read == 0 {
-            // Disconnected
-            return Err(());
-        }
 
         // Read the first 4 bytes, which encode the message's length
         self.buffer.extend_from_slice(&bytes[..bytes_read]);
