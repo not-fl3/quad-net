@@ -8,12 +8,13 @@ description = "Miniquad friendly network abstractions"
 
 [features]
 default = ["nanoserde"]
+ssl = ["qws/ssl"]  # Optional: getting/building OpenSSL on Win32 is difficult
 
 [dependencies]
 nanoserde = { version = "0.1", optional = true }
 
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
-qws = { version = "0.7.9", features = ["ssl"] }
+qws = { version = "0.7.9", default-features = false }
 ureq = "2.0"
 
 [target.'cfg(target_arch = "wasm32")'.dependencies]

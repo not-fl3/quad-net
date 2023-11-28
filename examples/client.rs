@@ -5,9 +5,9 @@ use quad_net::quad_socket::client::QuadSocket;
 #[macroquad::main("Networking!")]
 async fn main() {
     #[cfg(not(target_arch = "wasm32"))]
-    let mut socket = QuadSocket::connect("0.0.0.0:8090").unwrap();
+    let mut socket = QuadSocket::connect("localhost:8090").unwrap();
     #[cfg(target_arch = "wasm32")]
-    let mut socket = QuadSocket::connect("ws://0.0.0.0:8091").unwrap();
+    let mut socket = QuadSocket::connect("ws://localhost:8091").unwrap();
 
     #[cfg(target_arch = "wasm32")]
     {
