@@ -15,16 +15,18 @@ pub struct QuadSocket {
 }
 
 impl QuadSocket {
-    pub fn send(&mut self, data: &[u8]) {
+    pub fn send(&mut self, data: &[u8]) -> Result<(), Error> {
         #[cfg(not(target_arch = "wasm32"))]
         {
-            self.tcp_socket.send(data);
+            self.tcp_socket.send(data)?;
         }
 
         #[cfg(target_arch = "wasm32")]
         {
             self.web_socket.send_bytes(data);
         }
+
+        Ok(())
     }
 
     pub fn try_recv(&mut self) -> Option<Vec<u8>> {
@@ -42,10 +44,10 @@ impl QuadSocket {
 
 #[cfg(feature = "nanoserde")]
 impl QuadSocket {
-    pub fn send_bin<T: nanoserde::SerBin>(&mut self, data: &T) {
+    pub fn send_bin<T: nanoserde::SerBin>(&mut self, data: &T) -> Result<(), Error>  {
         use nanoserde::SerBin;
 
-        self.send(&SerBin::serialize_bin(data));
+        self.send(&SerBin::serialize_bin(data))
     }
 
     pub fn try_recv_bin<T: nanoserde::DeBin + std::fmt::Debug>(&mut self) -> Option<T> {

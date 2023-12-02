@@ -1,37 +1,50 @@
 use std::io::ErrorKind;
 
 #[derive(Debug)]
-pub enum MessageReader {
-    Empty,
-    Amount(usize),
+pub(crate) struct MessageReader {
+    buffer: Vec<u8>,
 }
 
 impl MessageReader {
     pub fn new() -> MessageReader {
-        MessageReader::Empty
+        MessageReader {
+            buffer: Vec::new()
+        }
     }
 
     pub fn next(&mut self, mut stream: impl std::io::Read) -> Result<Option<Vec<u8>>, ()> {
-        let mut bytes = [0 as u8; 255];
+        let mut bytes = [0; 16 * 1024];
 
-        match self {
-            MessageReader::Empty => match stream.read_exact(&mut bytes[0..1]) {
-                Ok(_) => {
-                    *self = MessageReader::Amount(bytes[0] as usize);
-                    Ok(None)
-                }
-                Err(err) if err.kind() == ErrorKind::WouldBlock => Ok(None),
-                Err(_err) => Err(()),
-            },
-            MessageReader::Amount(len) => match stream.read_exact(&mut bytes[0..*len]) {
-                Ok(_) => {
-                    let msg = bytes[0..*len].to_vec();
-                    *self = MessageReader::Empty;
-                    Ok(Some(msg))
-                }
-                Err(err) if err.kind() == ErrorKind::WouldBlock => Ok(None),
-                Err(_) => Err(()),
-            },
+        let bytes_read = match stream.read(&mut bytes) {
+            Ok(0) => return Err(()), // Disconnected
+            Ok(bytes_read) => bytes_read,
+            Err(err) if err.kind() == ErrorKind::WouldBlock => {
+                // No bytes received; still, check our buffer in case there's
+                // more stored messages in it from previous packets
+                0
+            }
+            Err(_err) => return Err(()),
+        };
+
+        // Read the first 4 bytes, which encode the message's length
+        self.buffer.extend_from_slice(&bytes[..bytes_read]);
+
+        if self.buffer.len() < 4 {
+            return Ok(None);
         }
+
+        use std::convert::TryInto;
+        let four_bytes: [u8; 4] = self.buffer[0..4].try_into().unwrap();
+        let message_size = u32::from_be_bytes(four_bytes) as usize;
+
+        // Keep receiving until the whole message is here
+        if self.buffer.len() < 4 + message_size {
+            return Ok(None);
+        }
+
+        let message = self.buffer[4..4+message_size].to_vec();
+        self.buffer.drain(..4+message_size);
+
+        Ok(Some(message))
     }
 }
