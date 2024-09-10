@@ -11,7 +11,7 @@ register_plugin = function (importObject) {
     importObject.env.http_try_recv = http_try_recv;
 }
 
-miniquad_add_plugin({ register_plugin, on_init, version: "0.1.1", name: "quad_net" });
+miniquad_add_plugin({ register_plugin, on_init, version: 1, name: "quad_net" });
 
 var quad_socket;
 var connected = 0;
