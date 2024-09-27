@@ -147,6 +147,12 @@ mod pc_web_socket {
                 .send(ws::Message::Binary(data.to_vec()))
                 .unwrap();
         }
+
+        pub fn close(&self) -> Result<(), String> {
+            self.sender
+                .close(qws::CloseCode::Normal)
+                .or_else(|error| return Err(error.to_string()))
+        }
     }
 }
 
