@@ -1,7 +1,7 @@
 function on_init() {
 }
 
-function register_plugin(importObject) {
+var register_plugin = function(importObject) {
     importObject.env.ws_connect = ws_connect;
     importObject.env.ws_is_connected = ws_is_connected;
     importObject.env.ws_send = ws_send;
