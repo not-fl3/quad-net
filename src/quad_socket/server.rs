@@ -40,8 +40,8 @@ impl<'a> Sender<'a> {
                 out.send(data).ok()?;
             }
             Sender::Tcp(stream) => {
-                stream.write(&[data.len() as u8]).ok()?;
-                stream.write(data).ok()?;
+                stream.write_all(&(data.len() as u32).to_be_bytes()).ok()?;
+                stream.write_all(data).ok()?;
             }
         }
 
